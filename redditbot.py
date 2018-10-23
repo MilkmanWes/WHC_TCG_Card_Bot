@@ -10,10 +10,11 @@ from urllib.parse import quote
 import signal, sys
 import configparser
 from titlecase import titlecase
-import os
+
 
 # Adding the ability to get key variables from a config file
-my_scope = os.environ['BOT_SCOPE']
+my_scope = 'submissions'
+#my_scope = 'submissions'
 config = configparser.ConfigParser()
 config.read_file(open('defaults.cfg'))
 my_creator_username = config['About']['creator']
