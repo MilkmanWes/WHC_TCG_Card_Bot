@@ -13,7 +13,7 @@ from titlecase import titlecase
 import os
 
 # Adding the ability to get key variables from a config file
-my_scope = os.environ['bot_scope']
+my_scope = os.environ['BOT_SCOPE']
 config = configparser.ConfigParser()
 config.read_file(open('defaults.cfg'))
 my_creator_username = config['About']['creator']
