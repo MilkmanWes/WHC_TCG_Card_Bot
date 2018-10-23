@@ -10,8 +10,10 @@ from urllib.parse import quote
 import signal, sys
 import configparser
 from titlecase import titlecase
+import os
 
 # Adding the ability to get key variables from a config file
+my_scope = os.environ['bot_scope']
 config = configparser.ConfigParser()
 config.read_file(open('defaults.cfg'))
 my_creator_username = config['About']['creator']
@@ -39,7 +41,7 @@ def main():
                     user_agent=my_user_agent,
                     username=my_username)
         subreddit = r.subreddit(my_subbreddits)
-        if sys.argv[1] == 'comments':
+        if my_scope == 'comments':
             for comment in r.subreddit(my_subbreddits).stream.comments(pause_after=0):
                 if comment is None:
                     continue
@@ -50,7 +52,7 @@ def main():
                         print(comment.body)
                         already_done.append(parser(comment))
                         write_done()
-        elif sys.argv[1] == 'submissions':
+        elif my_scope == 'submissions':
             for submission in r.subreddit(my_subbreddits).stream.submissions():
                 if submission is None:
                     continue
@@ -66,10 +68,10 @@ def main():
 
 def parser(message):
     global already_done
-    if sys.argv[1] == 'comments':
+    if my_scope == 'comments':
         print('parsing commenmts')
         cards = re.findall("\[\[(.*?)\]\]", message.body.replace("\\",""))
-    elif sys.argv[1] == 'submissions':
+    elif my_scope == 'submissions':
         cards = re.findall("\[\[(.*?)\]\]", message.selftext.replace("\\",""))
     reply = ""
     print("cards:")
