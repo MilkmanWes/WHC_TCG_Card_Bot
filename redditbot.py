@@ -71,12 +71,14 @@ def card_check(card, enc_card):
         if e.code == '403':
             return False
 
-
+#function to gert all bots comments and their parent for skipping
 def getMyComments():
     this_comment_ids = []
     for c in r.redditor(my_username).comments.new(limit=None):
         this_comment_ids.append(c.id)
-    return this.this_comment_ids
+        p = c.parent_id
+        this_comment_ids.append(p.replace("t3_", ""))
+    return this_comment_ids
 
 already_done = getMyComments()
 
@@ -95,7 +97,7 @@ def main():
                 if comment is None:
                     continue
                 with open(my_log_parsed_comments, 'r') as f:
-                    if comment.id not in f and comment.id not in already_done and not str(comment.author) == my_username:
+                    if comment.id not in already_done:
                         print('reading %s' % comment.id)
                         print(comment.author)
                         print(comment.body)
@@ -105,7 +107,7 @@ def main():
                 if submission is None:
                     continue
                 with open(my_log_parsed_comments, 'r') as f:
-                    if submission.id not in f and submission.id not in already_done and not str(submission.author) == my_username:
+                    if and submission.id not in already_done:
                         print('reading %s' % submission.id)
                         print(submission.author)
                         print(submission.selftext)
