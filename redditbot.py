@@ -7,8 +7,6 @@ from urllib.parse import quote
 import signal, sys
 import configparser
 from titlecase import titlecase
-import cloudstorage
-from google.appengine.api import app_identity
 
 
 # Adding the ability to get key variables from a config file
@@ -28,18 +26,24 @@ my_secret = config['praw']['secret']
 my_username = config['Account']['Username']
 my_password = config['Account']['Password']
 
+r = praw.Reddit(client_id=my_client_id,
+            client_secret=my_secret,
+            password=my_password,
+            user_agent=my_user_agent,
+            username=my_username)
+
 
 # function to actually parse the message out and check it for cards and make te comment
 def parser(message):
     global already_done
     if my_scope == 'comments':
-        print('parsing commenmts')
+        #print('parsing commenmts')
         cards = re.findall("\[\[(.*?)\]\]", message.body.replace("\\",""))
     elif my_scope == 'submissions':
         cards = re.findall("\[\[(.*?)\]\]", message.selftext.replace("\\",""))
     reply = ""
-    print("cards:")
-    print(cards)
+    #print("cards:")
+    #print(cards)
     if len(cards) > 30: cards = cards[0:30]
     for i in set(cards):
         i = titlecase(i)
@@ -65,8 +69,9 @@ def card_check(card, enc_card):
     try:
         # Opens the Gatherer page and looks for the card ID with Regex - Replaces & because it breaks URLs
         with urllib.request.urlopen("https://assets.warhammerchampions.com/card-database/cards/%s.jpg" % enc_card.replace("&", "%26")) as response:
-            print('search result: %s' % response.code)       
-        return True
+            #print('search result: %s' % response.code)       
+            if response.code == 200:
+                return True
     except urllib.error.HTTPError as e:
         if e.code == '403':
             return False
@@ -77,41 +82,40 @@ def getMyComments():
     for c in r.redditor(my_username).comments.new(limit=None):
         this_comment_ids.append(c.id)
         p = c.parent_id
-        this_comment_ids.append(p.replace("t3_", ""))
+        p = p.replace("t3_", "")
+        p = p.replace("t2_", "")
+        p = p.replace("t1_", "")
+        this_comment_ids.append(p)
     return this_comment_ids
 
 already_done = getMyComments()
+
+for a in already_done:
+    print(a)
 
 def main():
     while True:
         global already_done
         ids = []
-        r = praw.Reddit(client_id=my_client_id,
-                    client_secret=my_secret,
-                    password=my_password,
-                    user_agent=my_user_agent,
-                    username=my_username)
         subreddit = r.subreddit(my_subbreddits)
         if my_scope == 'comments':
             for comment in r.subreddit(my_subbreddits).stream.comments(pause_after=0):
                 if comment is None:
                     continue
-                with open(my_log_parsed_comments, 'r') as f:
-                    if comment.id not in already_done:
-                        print('reading %s' % comment.id)
-                        print(comment.author)
-                        print(comment.body)
-                        already_done.append(parser(comment))
+                if comment.id not in already_done and not str(comment.author) == my_username:
+                    print('reading %s' % comment.id)
+                    #print(comment.author)
+                    #print(comment.body)
+                    already_done.append(parser(comment))
         elif my_scope == 'submissions':
             for submission in r.subreddit(my_subbreddits).stream.submissions():
                 if submission is None:
                     continue
-                with open(my_log_parsed_comments, 'r') as f:
-                    if and submission.id not in already_done:
-                        print('reading %s' % submission.id)
-                        print(submission.author)
-                        print(submission.selftext)
-                        already_done.append(parser(submission))
+                if submission.id not in already_done and not str(submission.author) == my_username:
+                    #print('reading %s' % submission.id)
+                    #print(submission.author)
+                    #print(submission.selftext)
+                    already_done.append(parser(submission))
         time.sleep(10)
 
 # Function that is called when ctrl-c is pressed. It backups the current parsed comments into a backup file and then quits.
