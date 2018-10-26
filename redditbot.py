@@ -1,6 +1,3 @@
-#TODO - Parse typo's
-#TODO2 - Create more functions (e.g. post building into a function)
-
 import time
 import sys
 import praw
@@ -10,10 +7,12 @@ from urllib.parse import quote
 import signal, sys
 import configparser
 from titlecase import titlecase
+import cloudstorage
+from google.appengine.api import app_identity
 
 
 # Adding the ability to get key variables from a config file
-my_scope = 'submissions'
+my_scope = sys.argv[1]
 #my_scope = 'submissions'
 config = configparser.ConfigParser()
 config.read_file(open('defaults.cfg'))
@@ -29,44 +28,8 @@ my_secret = config['praw']['secret']
 my_username = config['Account']['Username']
 my_password = config['Account']['Password']
 
-# This loads the already parsed comments from a backup text file
-already_done = []
 
-def main():
-    while True:
-        global already_done
-        ids = []
-        r = praw.Reddit(client_id=my_client_id,
-                    client_secret=my_secret,
-                    password=my_password,
-                    user_agent=my_user_agent,
-                    username=my_username)
-        subreddit = r.subreddit(my_subbreddits)
-        if my_scope == 'comments':
-            for comment in r.subreddit(my_subbreddits).stream.comments(pause_after=0):
-                if comment is None:
-                    continue
-                with open(my_log_parsed_comments, 'r') as f:
-                    if comment.id not in f and comment.id not in already_done and not str(comment.author) == my_username:
-                        print('reading %s' % comment.id)
-                        print(comment.author)
-                        print(comment.body)
-                        already_done.append(parser(comment))
-                        write_done()
-        elif my_scope == 'submissions':
-            for submission in r.subreddit(my_subbreddits).stream.submissions():
-                if submission is None:
-                    continue
-                with open(my_log_parsed_comments, 'r') as f:
-                    if submission.id not in f and submission.id not in already_done and not str(submission.author) == my_username:
-                        print('reading %s' % submission.id)
-                        print(submission.author)
-                        print(submission.selftext)
-                        already_done.append(parser(submission))
-                        write_done()
-        time.sleep(10)
-
-
+# function to actually parse the message out and check it for cards and make te comment
 def parser(message):
     global already_done
     if my_scope == 'comments':
@@ -108,16 +71,49 @@ def card_check(card, enc_card):
         if e.code == '403':
             return False
 
-# Function that backs up current parsed comments
-def write_done():
-    global already_done
-    with open(my_log_parsed_comments, "w") as f:
-        for i in already_done:
-            f.write(str(i) + '\n')
+
+def getMyComments():
+    this_comment_ids = []
+    for c in r.redditor(my_username).comments.new(limit=None):
+        this_comment_ids.append(c.id)
+    return this.this_comment_ids
+
+already_done = getMyComments()
+
+def main():
+    while True:
+        global already_done
+        ids = []
+        r = praw.Reddit(client_id=my_client_id,
+                    client_secret=my_secret,
+                    password=my_password,
+                    user_agent=my_user_agent,
+                    username=my_username)
+        subreddit = r.subreddit(my_subbreddits)
+        if my_scope == 'comments':
+            for comment in r.subreddit(my_subbreddits).stream.comments(pause_after=0):
+                if comment is None:
+                    continue
+                with open(my_log_parsed_comments, 'r') as f:
+                    if comment.id not in f and comment.id not in already_done and not str(comment.author) == my_username:
+                        print('reading %s' % comment.id)
+                        print(comment.author)
+                        print(comment.body)
+                        already_done.append(parser(comment))
+        elif my_scope == 'submissions':
+            for submission in r.subreddit(my_subbreddits).stream.submissions():
+                if submission is None:
+                    continue
+                with open(my_log_parsed_comments, 'r') as f:
+                    if submission.id not in f and submission.id not in already_done and not str(submission.author) == my_username:
+                        print('reading %s' % submission.id)
+                        print(submission.author)
+                        print(submission.selftext)
+                        already_done.append(parser(submission))
+        time.sleep(10)
 
 # Function that is called when ctrl-c is pressed. It backups the current parsed comments into a backup file and then quits.
 def signal_handler(signal, frame):
-    write_done()
     sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
