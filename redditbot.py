@@ -104,16 +104,19 @@ def main():
                     continue
                 if comment.id not in already_done and not str(comment.author) == my_username:
                     print('reading %s' % comment.id)
-                    #print(comment.author)
+                    print(comment.author)
+                    print(comment.created)
                     #print(comment.body)
                     already_done.append(parser(comment))
         elif my_scope == 'submissions':
             for submission in r.subreddit(my_subbreddits).stream.submissions():
+                already_done = getMyComments()
                 if submission is None:
                     continue
                 if submission.id not in already_done and not str(submission.author) == my_username:
-                    #print('reading %s' % submission.id)
-                    #print(submission.author)
+                    print('reading %s' % submission.id)
+                    print(submission.author)
+                    print(submission.created)
                     #print(submission.selftext)
                     already_done.append(parser(submission))
         time.sleep(10)
